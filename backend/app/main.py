@@ -25,6 +25,11 @@ app.add_middleware(
 frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 
+@app.get("/healthz")
+def healthcheck() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.post("/api/analyze", response_model=InnovationResponse)
 def analyze_opportunity(payload: InnovationInput) -> InnovationResponse:
     return build_assessment(payload)

@@ -1,8 +1,12 @@
 services:
   - type: web
-    name: forgelink-ai
+    name: forgelink-ai-backend
     env: python
     rootDir: backend
-    buildCommand: pip install -r requirements.txt && cd ../frontend && npm install && npm run build
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.9
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
     autoDeploy: true
