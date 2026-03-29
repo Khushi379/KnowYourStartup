@@ -1,3 +1,6 @@
+
+
+
 import { useMemo, useState, useEffect } from "react";
 
 const initialForm = {
@@ -39,6 +42,10 @@ function getScoreBand(score) {
 
 function getScoreBandClass(score) {
   return `score-band ${getScoreBand(score).toLowerCase()}`;
+}
+
+function formatOperatorReport(report) {
+  return report.replace(/^##\s*/gm, "");
 }
 
 function App() {
@@ -112,7 +119,7 @@ function App() {
           <div className="brand-mark"><h2>ForgeLink AI</h2></div>
           <div className="step-tabs">
             <button className={`step-tab ${page === "landing" ? "active" : ""}`} type="button" onClick={() => setPage("landing")}>
-              Intro
+              Home
             </button>
             <button className={`step-tab ${page === "input" ? "active" : ""}`} type="button" onClick={() => setPage("input")}>
               Input
@@ -141,15 +148,15 @@ function App() {
               <div className="hero-cards">
                 <article>
                   <h3>Score startup potential</h3>
-                  <p>Read the founder brief like an operator instead of asking users to fill in scoring sliders.</p>
+                  <p>Score your startup before the market does, and turn uncertainty into data-driven direction.</p>
                 </article>
                 <article>
                   <h3>Show the operator thesis</h3>
-                  <p>Return a concise memo with what works, what breaks, and what to do next.</p>
+                  <p>Get a concise memo with what works, what breaks, and what to do next.</p>
                 </article>
                 <article>
                   <h3>Get an implementation roadmap</h3>
-                  <p>Turn the project summary into practical build phases for a real MVP.</p>
+                  <p>Turn Your Dream Project into practical build phases for a real MVP.</p>
                 </article>
               </div>
               <button className="primary landing-cta" type="button" onClick={() => setPage("input")} style={{ marginTop: "20px" }}>
@@ -176,7 +183,7 @@ function App() {
           <section className="single-page">
             <form className="panel form-panel" onSubmit={handleSubmit}>
               <div className="heading">
-                <h2>Describe the product you want to build</h2>
+                <h2>Describe your dream product .</h2>
               </div>
 
               <div className="input-dashboard">
@@ -316,7 +323,7 @@ function App() {
                     <div className="section-bar">
                       <h3>Operator Report</h3>
                     </div>
-                    <pre className="report-block">{result.operator_report}</pre>
+                    <pre className="report-block">{formatOperatorReport(result.operator_report)}</pre>
                   </div>
 
                   {/* Score breakdown */}
@@ -411,7 +418,7 @@ function App() {
                         {roadmap.map((phase, index) => (
                           <article className="roadmap-phase" key={phase.title}>
                             <h4>
-                              <span className="phase-number">0{index + 1}</span>
+                              
                               {phase.title}
                             </h4>
                             <ul>

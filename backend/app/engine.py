@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import json
@@ -210,11 +211,11 @@ def build_score_breakdown(data: InnovationInput, skills: set[str]) -> list[Score
     ai_fit_score = clamp_signal(3 + (2.5 if "ai" in summary_text else 0) + (1.5 if {"ai","ml","data"} & skills else 0) + (1 if "automation" in summary_text or "assistant" in summary_text else 0))
 
     return [
-        ScoreBreakdown(key="painkiller", label="Painkiller Strength", score=pain_score, rationale=build_score_rationale("painkiller", pain_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
+        ScoreBreakdown(key="painkiller", label="Urgency of Problem", score=pain_score, rationale=build_score_rationale("painkiller", pain_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
         ScoreBreakdown(key="timing", label="Market Timing", score=market_score, rationale=build_score_rationale("timing", market_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
-        ScoreBreakdown(key="validation", label="Validation Proof", score=validation_score, rationale=build_score_rationale("validation", validation_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
+        ScoreBreakdown(key="validation", label="Market Validation", score=validation_score, rationale=build_score_rationale("validation", validation_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
         ScoreBreakdown(key="buildability", label="Buildability", score=buildability_score, rationale=build_score_rationale("buildability", buildability_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
-        ScoreBreakdown(key="defensibility", label="Defensibility", score=moat_score, rationale=build_score_rationale("defensibility", moat_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
+        ScoreBreakdown(key="defensibility", label="Competitive Advantage", score=moat_score, rationale=build_score_rationale("defensibility", moat_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
         ScoreBreakdown(key="ai_fit", label="AI Fit", score=ai_fit_score, rationale=build_score_rationale("ai_fit", ai_fit_score, audience_group=audience_group, primary_workflow=primary_workflow, domain_label=domain_label)),
     ]
 
