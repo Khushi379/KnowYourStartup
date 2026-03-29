@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 const initialForm = {
   project_name: "ForgeLink AI",
@@ -9,18 +9,12 @@ const initialForm = {
 };
 
 function resolveApiBase() {
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
-  }
-
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
   if (typeof window !== "undefined") {
     const { hostname, origin } = window.location;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "http://127.0.0.1:8100";
-    }
+    if (hostname === "localhost" || hostname === "127.0.0.1") return "http://127.0.0.1:8100";
     return origin;
   }
-
   return "";
 }
 
@@ -37,89 +31,14 @@ const domainLabels = {
   developer_tools: "Developer tools",
 };
 
-const architectureBlocks = [
-  {
-    title: "React frontend",
-    detail: "A focused dashboard for founders to frame the idea and review an operator-style assessment clearly.",
-  },
-  {
-    title: "FastAPI service",
-    detail: "A lightweight API receives founder inputs and returns structured opportunity intelligence.",
-  },
-  {
-    title: "Operator scoring engine",
-    detail: "A backend scorer derives pain, timing, validation, buildability, and AI fit directly from the founder brief.",
-  },
-  {
-    title: "Ollama report layer",
-    detail: "The API can fetch an operator memo from an Ollama Qwen model and falls back to a local report when unavailable.",
-  },
-];
+function getScoreBand(score) {
+  if (score >= 8) return "High";
+  if (score >= 5) return "Medium";
+  return "Low";
+}
 
-const techStack = [
-  "React",
-  "Vite",
-  "FastAPI",
-  "Python",
-  "Pydantic",
-  "REST API",
-  "Ollama",
-  "Responsive CSS",
-];
-
-function getRoadmap(summary, domain, result) {
-  const domainLabel = domainLabels[domain] || "General innovation";
-  const focusLine = summary?.toLowerCase().includes("ai")
-    ? "Build the first version around one visible AI-assisted workflow instead of spreading AI everywhere."
-    : "Keep the MVP centered on one high-value workflow users can understand immediately.";
-
-  return [
-    {
-      phase: "Phase 1",
-      title: "Problem Definition",
-      tasks: [
-        `Refine the ${domainLabel.toLowerCase()} problem into one sharp user pain point.`,
-        "Turn the project summary into a one-sentence value proposition and success metric.",
-        "List the top three user problems that must be solved in the first release.",
-      ],
-    },
-    {
-      phase: "Phase 2",
-      title: "Validation",
-      tasks: [
-        "Interview at least 5 target users and test whether the summary matches a real need.",
-        "Collect repeated pain points, objections, and desired outcomes.",
-        focusLine,
-      ],
-    },
-    {
-      phase: "Phase 3",
-      title: "MVP Scope",
-      tasks: [
-        "Choose the smallest workflow that delivers clear value in under two minutes.",
-        "Use the recommended MVP features as the first release scope.",
-        "Drop secondary features until the demo path is clean and fast.",
-      ],
-    },
-    {
-      phase: "Phase 4",
-      title: "System Build",
-      tasks: [
-        "Build the React frontend for idea input and results visualization.",
-        "Create FastAPI endpoints for analysis and structured recommendation output.",
-        "Connect the Ollama operator report flow with a safe fallback.",
-      ],
-    },
-    {
-      phase: "Phase 5",
-      title: "Demo Readiness",
-      tasks: [
-        "Test the product with realistic example inputs from the target domain.",
-        `Emphasize the strongest result signals: ${result?.verdict || "opportunity fit"}, strengths, and architecture clarity.`,
-        "Prepare a short pitch showing problem, score, operator memo, and expansion path.",
-      ],
-    },
-  ];
+function getScoreBandClass(score) {
+  return `score-band ${getScoreBand(score).toLowerCase()}`;
 }
 
 function App() {
@@ -129,42 +48,26 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const skills = form.team_skills
-    .split(",")
-    .map((skill) => skill.trim())
-    .filter(Boolean);
+  const skills = useMemo(
+    () => form.team_skills.split(",").map((s) => s.trim()).filter(Boolean),
+    [form.team_skills]
+  );
 
   const dashboardSignals = [
     { label: "Selected domain", value: domainLabels[form.domain] },
-    {
-      label: "Founder brief",
-      value: `${form.idea_summary.split(/\s+/).filter(Boolean).length} words`,
-    },
+    { label: "Founder brief", value: `${form.idea_summary.split(/\s+/).filter(Boolean).length} words` },
     { label: "Team skills", value: `${skills.length} listed` },
   ];
 
-  const roadmap = useMemo(
-    () => getRoadmap(form.idea_summary, form.domain, result),
-    [form.idea_summary, form.domain, result]
-  );
+  const ideaPrompts = ["Who has the problem?", "Why is it painful right now?", "What is the smallest useful solution?"];
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [page]);
 
-  const ideaPrompts = [
-    "Who has the problem?",
-    "Why is it painful right now?",
-    "What is the smallest useful solution?",
-  ];
-
   function updateField(event) {
     const { name, value } = event.target;
-
-    setForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
+    setForm((current) => ({ ...current, [name]: value }));
   }
 
   async function handleSubmit(event) {
@@ -175,30 +78,28 @@ function App() {
     try {
       const response = await fetch(`${apiBase}/api/analyze`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...form,
-          team_skills: skills,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, team_skills: skills }),
       });
 
       if (!response.ok) {
-        const fallback = `The backend could not analyze this idea (${response.status}).`;
         const text = await response.text();
-        throw new Error(text || fallback);
+        throw new Error(text || `Backend error (${response.status})`);
       }
 
       const data = await response.json();
       setResult(data);
       setPage("output");
-    } catch (submissionError) {
-      setError(submissionError.message || "Could not reach the backend.");
+    } catch (err) {
+      setError(err.message || "Could not reach the backend.");
     } finally {
       setLoading(false);
     }
   }
+
+  // ── Derive roadmap and architecture from API result, never hardcoded ──
+  const roadmap = result?.roadmap ?? [];
+  const architectureBlocks = result?.architecture_blocks ?? [];
 
   return (
     <div className="shell">
@@ -206,21 +107,14 @@ function App() {
       <div className="mesh mesh-b" />
 
       <main className="layout">
+        {/* ── Topbar ── */}
         <div className="topbar">
-          <div className="brand-mark">ForgeLink AI</div>
+          <div className="brand-mark"><h2>ForgeLink AI</h2></div>
           <div className="step-tabs">
-            <button
-              className={`step-tab ${page === "landing" ? "active" : ""}`}
-              type="button"
-              onClick={() => setPage("landing")}
-            >
+            <button className={`step-tab ${page === "landing" ? "active" : ""}`} type="button" onClick={() => setPage("landing")}>
               Intro
             </button>
-            <button
-              className={`step-tab ${page === "input" ? "active" : ""}`}
-              type="button"
-              onClick={() => setPage("input")}
-            >
+            <button className={`step-tab ${page === "input" ? "active" : ""}`} type="button" onClick={() => setPage("input")}>
               Input
             </button>
             <button
@@ -234,34 +128,31 @@ function App() {
           </div>
         </div>
 
-        {page === "landing" ? (
+        {/* ── Landing ── */}
+        {page === "landing" && (
           <section className="landing-screen panel">
             <div className="landing-copy">
               <div className="tag" />
               <h1>ForgeLink AI</h1>
               <p>
-                An AI innovation copilot that transforms raw ideas into operator-style opportunity scores, execution views, and MVP direction.
+                An AI innovation copilot that transforms raw ideas into actionable opportunity scores,
+                operator-grade insights, and clear MVP roadmaps.
               </p>
-
               <div className="hero-cards">
                 <article>
-                  <span>Discover</span>
                   <h3>Score startup potential</h3>
                   <p>Read the founder brief like an operator instead of asking users to fill in scoring sliders.</p>
                 </article>
                 <article>
-                  <span>Explain</span>
                   <h3>Show the operator thesis</h3>
                   <p>Return a concise memo with what works, what breaks, and what to do next.</p>
                 </article>
                 <article>
-                  <span>Build</span>
                   <h3>Get an implementation roadmap</h3>
                   <p>Turn the project summary into practical build phases for a real MVP.</p>
                 </article>
               </div>
-
-              <button className="primary landing-cta" type="button" onClick={() => setPage("input")}>
+              <button className="primary landing-cta" type="button" onClick={() => setPage("input")} style={{ marginTop: "20px" }}>
                 <span className="button-label">Get Started</span>
               </button>
             </div>
@@ -278,13 +169,13 @@ function App() {
               <div className="signal-trail signal-trail-b" />
             </aside>
           </section>
-        ) : null}
+        )}
 
-        {page === "input" ? (
+        {/* ── Input ── */}
+        {page === "input" && (
           <section className="single-page">
             <form className="panel form-panel" onSubmit={handleSubmit}>
               <div className="heading">
-                <span>Innovation Input</span>
                 <h2>Describe the product you want to build</h2>
               </div>
 
@@ -306,18 +197,13 @@ function App() {
                   </div>
 
                   <label>
-                    Project name
+                    Startup Name
                     <input name="project_name" value={form.project_name} onChange={updateField} />
                   </label>
 
                   <label>
-                    Project summary
-                    <textarea
-                      name="idea_summary"
-                      rows="6"
-                      value={form.idea_summary}
-                      onChange={updateField}
-                    />
+                    Startup Summary
+                    <textarea name="idea_summary" rows="6" value={form.idea_summary} onChange={updateField} />
                   </label>
 
                   <div className="summary-helper">
@@ -327,9 +213,7 @@ function App() {
 
                   <div className="prompt-chip-row">
                     {ideaPrompts.map((prompt) => (
-                      <span className="prompt-chip" key={prompt}>
-                        {prompt}
-                      </span>
+                      <span className="prompt-chip" key={prompt}>{prompt}</span>
                     ))}
                   </div>
                 </section>
@@ -337,7 +221,6 @@ function App() {
                 <section className="dashboard-block">
                   <div className="block-head">
                     <div>
-                      <span>Context</span>
                       <h3>Pick the market and define the builder context</h3>
                     </div>
                   </div>
@@ -359,11 +242,7 @@ function App() {
 
                     <label>
                       Team skills
-                      <input
-                        name="team_skills"
-                        value={form.team_skills}
-                        onChange={updateField}
-                      />
+                      <input name="team_skills" value={form.team_skills} onChange={updateField} />
                     </label>
                   </div>
 
@@ -375,35 +254,29 @@ function App() {
 
                   <div className="skill-chip-row">
                     {skills.map((skill) => (
-                      <span className="skill-chip" key={skill}>
-                        {skill}
-                      </span>
+                      <span className="skill-chip" key={skill}>{skill}</span>
                     ))}
                   </div>
                 </section>
               </div>
 
               <div className="page-actions">
-                <button className="secondary" type="button" onClick={() => setPage("landing")}>
-                  Back
-                </button>
+                <button className="secondary" type="button" onClick={() => setPage("landing")}>Back</button>
                 <button className={`primary ${loading ? "is-loading" : ""}`} type="submit" disabled={loading}>
-                  <span className="button-label">
-                    {loading ? "Scoring Idea..." : "Know your StartUp"}
-                  </span>
+                  <span className="button-label">{loading ? "Scoring Idea..." : "Know your StartUp"}</span>
                 </button>
               </div>
 
-              {error ? <p className="error">{error}</p> : null}
+              {error && <p className="error">{error}</p>}
             </form>
           </section>
-        ) : null}
+        )}
 
-        {page === "output" ? (
+        {/* ── Output ── */}
+        {page === "output" && (
           <section className="single-page">
             <section className="panel output-panel">
               <div className="heading">
-                <span>AI Output</span>
                 <h2>Operator score and execution view</h2>
               </div>
 
@@ -414,16 +287,15 @@ function App() {
               ) : (
                 <div className="results">
                   <div className="page-actions">
-                    <button className="secondary" type="button" onClick={() => setPage("input")}>
-                      Edit Input
-                    </button>
+                    <button className="secondary" type="button" onClick={() => setPage("input")}>Edit Input</button>
                   </div>
 
+                  {/* Score row */}
                   <div className="score-row compact">
                     <article className="score primary-score wide">
                       <span>Operator score</span>
                       <strong>{result.innovation_score}</strong>
-                      <p>{result.verdict}</p>
+                      <h2>{result.verdict}</h2>
                     </article>
                     <article className="score">
                       <span>Operator read</span>
@@ -432,20 +304,22 @@ function App() {
                     </article>
                   </div>
 
+                  {/* Summary */}
                   <div className="story">
                     <h3>Summary</h3>
                     <p>{result.summary}</p>
                     <p className="statement">{result.opportunity_statement}</p>
                   </div>
 
+                  {/* Operator report */}
                   <div className="ai-brief">
                     <div className="section-bar">
-                      <span>Output</span>
-                      <h3>Operator memo</h3>
+                      <h3>Operator Report</h3>
                     </div>
                     <pre className="report-block">{result.operator_report}</pre>
                   </div>
 
+                  {/* Score breakdown */}
                   <div className="card-list">
                     <h3>Score breakdown</h3>
                     <div className="breakdown-grid">
@@ -453,122 +327,110 @@ function App() {
                         <article className="breakdown-card" key={item.key}>
                           <span>{item.label}</span>
                           <strong>{item.score}/10</strong>
+                          <div className={getScoreBandClass(item.score)}>{getScoreBand(item.score)}</div>
                           <p>{item.rationale}</p>
                         </article>
                       ))}
                     </div>
                   </div>
 
+                  {/* Strengths / Risks */}
                   <div className="columns">
                     <div className="card-list">
                       <h3>Strengths</h3>
-                      <ul>
-                        {result.strengths.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                      <ul>{result.strengths.map((item) => <li key={item}>{item}</li>)}</ul>
                     </div>
                     <div className="card-list">
                       <h3>Risks</h3>
-                      <ul>
-                        {result.risks.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                      <ul>{result.risks.map((item) => <li key={item}>{item}</li>)}</ul>
                     </div>
                   </div>
 
+                  {/* MVP features / Target users */}
                   <div className="columns">
                     <div className="card-list">
                       <h3>MVP features</h3>
-                      <ul>
-                        {result.mvp_features.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                      <ul>{result.mvp_features.map((item) => <li key={item}>{item}</li>)}</ul>
                     </div>
                     <div className="card-list">
                       <h3>Target users</h3>
-                      <ul>
-                        {result.target_users.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                      <ul>{result.target_users.map((item) => <li key={item}>{item}</li>)}</ul>
                     </div>
                   </div>
 
+                  {/* Differentiators / Next steps */}
                   <div className="columns">
                     <div className="card-list">
                       <h3>Differentiators</h3>
-                      <ul>
-                        {result.differentiators.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                      <ul>{result.differentiators.map((item) => <li key={item}>{item}</li>)}</ul>
                     </div>
                     <div className="card-list experiments-card">
                       <h3>Next steps</h3>
-                      <ul>
-                        {result.next_steps.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
+                      <ul>{result.next_steps.map((item) => <li key={item}>{item}</li>)}</ul>
                     </div>
                   </div>
 
+                  {/* Architecture — FROM API RESULT */}
                   <div className="architecture-card">
                     <div className="section-bar">
-                      <span>Project Architecture</span>
                       <h3>How the system is built</h3>
                     </div>
-                    <div className="architecture-grid">
-                      {architectureBlocks.map((block) => (
-                        <article className="architecture-node" key={block.title}>
-                          <strong>{block.title}</strong>
-                          <p>{block.detail}</p>
-                        </article>
-                      ))}
-                    </div>
+                    {architectureBlocks.length > 0 ? (
+                      <div className="architecture-grid">
+                        {architectureBlocks.map((block) => (
+                          <article className="architecture-node" key={block.title}>
+                            <strong>{block.title}</strong>
+                            <p>{block.detail}</p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="empty">No architecture blocks returned.</p>
+                    )}
                   </div>
 
+                  {/* Tech stack */}
                   <div className="stack-card">
                     <div className="section-bar">
-                      <span>Technology Used</span>
                       <h3>Core stack in this project</h3>
                     </div>
                     <div className="stack-grid">
-                      {techStack.map((item) => (
-                        <span className="stack-chip" key={item}>
-                          {item}
-                        </span>
+                      {result.tech_stack.map((item) => (
+                        <span className="stack-chip" key={item}>{item}</span>
                       ))}
                     </div>
                   </div>
 
+                  {/* Roadmap — FROM API RESULT */}
                   <div className="roadmap-card">
                     <div className="section-bar">
-                      <span>Implementation Roadmap</span>
                       <h3>Proper roadmap for this project summary</h3>
                     </div>
-                    <div className="roadmap-grid">
-                      {roadmap.map((phase) => (
-                        <article className="roadmap-phase" key={phase.phase}>
-                          <span>{phase.phase}</span>
-                          <h4>{phase.title}</h4>
-                          <ul>
-                            {phase.tasks.map((task) => (
-                              <li key={task}>{task}</li>
-                            ))}
-                          </ul>
-                        </article>
-                      ))}
-                    </div>
+                    {roadmap.length > 0 ? (
+                      <div className="roadmap-grid">
+                        {roadmap.map((phase, index) => (
+                          <article className="roadmap-phase" key={phase.title}>
+                            <h4>
+                              <span className="phase-number">0{index + 1}</span>
+                              {phase.title}
+                            </h4>
+                            <ul>
+                              {phase.tasks.map((task) => (
+                                <li key={task}>{task}</li>
+                              ))}
+                            </ul>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="empty">No roadmap returned from the backend.</p>
+                    )}
                   </div>
                 </div>
               )}
             </section>
           </section>
-        ) : null}
+        )}
       </main>
     </div>
   );

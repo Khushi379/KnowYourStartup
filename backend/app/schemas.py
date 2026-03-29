@@ -26,6 +26,16 @@ class ScoreBreakdown(BaseModel):
     rationale: str
 
 
+class ArchitectureBlock(BaseModel):
+    title: str
+    detail: str
+
+
+class RoadmapPhase(BaseModel):
+    title: str
+    tasks: list[str]
+
+
 class InnovationResponse(BaseModel):
     innovation_score: int = Field(ge=0, le=100)
     verdict: Literal["Prototype Now", "Needs Validation", "Reframe Idea"]
@@ -40,3 +50,6 @@ class InnovationResponse(BaseModel):
     target_users: list[str]
     differentiators: list[str]
     next_steps: list[str]
+    tech_stack: list[str]
+    architecture_blocks: list[ArchitectureBlock]
+    roadmap: list[RoadmapPhase]
